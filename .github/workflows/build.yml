@@ -53,7 +53,7 @@ jobs:
       contents: read
       packages: write
       security-events: write
-      actions: read   # ⭐ ADD THIS (helps telemetry + SARIF)
+      actions: read
 
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +86,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
 
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/wallet-service:sha-${{ github.sha }}
           format: sarif
@@ -94,7 +94,6 @@ jobs:
           severity: CRITICAL,HIGH
           github-pat: ${{ secrets.GITHUB_TOKEN }}
 
-      # ⭐ ONLY UPLOAD ON PUSH
       - name: Upload SARIF
         if: github.event_name == 'push'
         uses: github/codeql-action/upload-sarif@v4
