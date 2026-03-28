@@ -118,9 +118,6 @@ LOGGING = {
         },
     },
 }
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000').split(',')
-CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -145,7 +142,10 @@ DATABASES = {
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
-
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -196,11 +196,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # pip install channels-redis
 CHANNEL_LAYER_HOSTS = os.getenv('CHANNEL_LAYER_HOSTS', '127.0.0.1:6379').split(',')
 
+REDIS_DB = int(os.getenv("REDIS_DB", 0))
+
+REDIS_SOCKET_TIMEOUT = int(os.getenv("REDIS_SOCKET_TIMEOUT", 2))
+REDIS_CONNECT_TIMEOUT = int(os.getenv("REDIS_CONNECT_TIMEOUT", 2))
+REDIS_RETRY_ON_TIMEOUT = os.getenv("REDIS_RETRY_ON_TIMEOUT", "true").lower() == "true"
+
+ROOM_CACHE_TTL = int(os.getenv("ROOM_CACHE_TTL", 300))
+# Get Redis password from environment
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+REDIS_HOST = os.getenv('REDIS_HOST', 'redis.infrastructure.svc.cluster.local')
+REDIS_PORT = os.getenv('REDIS_PORT', '6379')
+
+# Build Redis URL with password
+REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [tuple(host.split(':')) for host in CHANNEL_LAYER_HOSTS],
+            "hosts": [REDIS_URL],  # ← String URL, NOT tuple!
             "capacity": int(os.getenv('CHANNEL_LAYER_CAPACITY', 1000)),
             "expiry": int(os.getenv('CHANNEL_LAYER_EXPIRY', 10)),
         },
@@ -210,3 +225,13 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY",)
 SERVICE_JWT = os.getenv("SERVICE_JWT")
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:8000/zedvye_one/")
 AUTH_PUBLIC_KEY_URL = os.getenv("AUTH_PUBLIC_KEY_URL", "http://127.0.0.1:8000/zedvye_one/users/public_key/")
+CORS_ALLOWED_ORIGINS = [
+    origin.strip() 
+    for origin in os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+]
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() 
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+]
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
+CORS_ALLOW_ALL_ORIGINS = False
