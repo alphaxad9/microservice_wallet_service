@@ -1,71 +1,44 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "helm.appname" (dict "ctx" $ "svc" "wallet") }}
+  name: {{ .Values.configMap.name }}
   labels:
-    app: {{ include "helm.appname" (dict "ctx" $ "svc" "wallet") }}
+    app: wallet-service
     app.kubernetes.io/component: wallet-service
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion | default "1.0.0" | quote }}
-    app.kubernetes.io/part-of: {{ .Chart.Name }}
-
 data:
-  # =========================
-  # Django Core Settings
-  # =========================
+  # Service Identity
+  SERVICE_NAME: {{ .Values.config.wallet.serviceName | quote }}
+  DB_NAME: {{ .Values.config.wallet.dbName | quote }}
+  
+  # Django Core
   DJANGO_SETTINGS_MODULE: {{ .Values.config.wallet.djangoSettingsModule | quote }}
-  DJANGO_DEBUG: {{ .Values.config.wallet.djangoDebug | quote }}
   DJANGO_ALLOWED_HOSTS: {{ .Values.config.wallet.djangoAllowedHosts | quote }}
+  DJANGO_DEBUG: {{ .Values.config.wallet.djangoDebug | quote }}
+  LOG_LEVEL: {{ .Values.config.wallet.logLevel | quote }}
   DJANGO_LANGUAGE_CODE: {{ .Values.config.wallet.djangoLanguageCode | quote }}
   DJANGO_TIME_ZONE: {{ .Values.config.wallet.djangoTimeZone | quote }}
-  DEFAULT_FROM_EMAIL: {{ .Values.config.wallet.defaultFromEmail | quote }}
-  LOG_LEVEL: {{ .Values.config.wallet.logLevel | quote }}
   
-  # =========================
-  # Server Settings
-  # =========================
-  PORT: {{ .Values.backend.wallet.port | quote }}
-  
-  # =========================
-  # Database (Non-sensitive Connection Info)
-  # =========================
-  POSTGRES_ENGINE: {{ .Values.config.wallet.postgresEngine | quote }}
+  # Database
   POSTGRES_HOST: {{ .Values.config.wallet.postgresHost | quote }}
   POSTGRES_PORT: {{ .Values.config.wallet.postgresPort | quote }}
-  POSTGRES_DB: {{ .Values.config.wallet.postgresDb | quote }}
+  DB_HOST: {{ .Values.config.wallet.dbHost | quote }}
+  DB_PORT: {{ .Values.config.wallet.dbPort | quote }}
   
-  # =========================
-  # Authentication & Security (URLs only)
-  # =========================
-  INTERNAL_API_KEY: {{ .Values.config.wallet.internalApiKey | quote }}
-  SERVICE_JWT: {{ .Values.config.wallet.serviceJwt | quote }}
-  JWT_SECRET: {{ .Values.config.wallet.jwtSecret | quote }}
+  # Auth Service
   AUTH_SERVICE_URL: {{ .Values.config.wallet.authServiceUrl | quote }}
   AUTH_PUBLIC_KEY_URL: {{ .Values.config.wallet.authPublicKeyUrl | quote }}
-  WALLET_SERVICE: {{ .Values.config.wallet.walletService | quote }}
   
-  # =========================
-  # RabbitMQ (Non-sensitive Connection Info)
-  # =========================
+  # RabbitMQ
   RABBITMQ_HOST: {{ .Values.config.wallet.rabbitmqHost | quote }}
-  RABBITMQ_PORT: {{ .Values.config.wallet.rabbitmqPort | quote }}
   RABBITMQ_QUEUE: {{ .Values.config.wallet.rabbitmqQueue | quote }}
   RABBITMQ_VHOST: {{ .Values.config.wallet.rabbitmqVhost | quote }}
   
-  # =========================
   # Kafka
-  # =========================
   KAFKA_BROKERS: {{ .Values.config.wallet.kafkaBrokers | quote }}
   KAFKA_TOPIC: {{ .Values.config.wallet.kafkaTopic | quote }}
   KAFKA_GROUP_ID: {{ .Values.config.wallet.kafkaGroupId | quote }}
-  KAFKA_SECURITY_PROTOCOL: {{ .Values.config.wallet.kafkaSecurityProtocol | quote }}
-  KAFKA_ENABLE_AUTO_COMMIT: {{ .Values.config.wallet.kafkaEnableAutoCommit | quote }}
-  KAFKA_AUTO_OFFSET_RESET: {{ .Values.config.wallet.kafkaAutoOffsetReset | quote }}
   
-  # =========================
   # Redis
-  # =========================
   REDIS_HOST: {{ .Values.config.wallet.redisHost | quote }}
   REDIS_PORT: {{ .Values.config.wallet.redisPort | quote }}
   REDIS_DB: {{ .Values.config.wallet.redisDb | quote }}
@@ -73,22 +46,19 @@ data:
   REDIS_CONNECT_TIMEOUT: {{ .Values.config.wallet.redisConnectTimeout | quote }}
   REDIS_RETRY_ON_TIMEOUT: {{ .Values.config.wallet.redisRetryOnTimeout | quote }}
   
-  # =========================
   # Cache TTLs
-  # =========================
   LIKES_CACHE_TTL: {{ .Values.config.wallet.likesCacheTtl | quote }}
   AUTHOR_TIMELINE_CACHE_TTL: {{ .Values.config.wallet.authorTimelineCacheTtl | quote }}
   
-  # =========================
+  # CORS
+  CORS_ALLOWED_ORIGINS: {{ .Values.config.wallet.corsAllowedOrigins | quote }}
+  CSRF_TRUSTED_ORIGINS: {{ .Values.config.wallet.csrfTrustedOrigins | quote }}
+  CORS_ALLOW_CREDENTIALS: {{ .Values.config.wallet.corsAllowCredentials | quote }}
+  
   # Channel Layers
-  # =========================
   CHANNEL_LAYER_HOSTS: {{ .Values.config.wallet.channelLayerHosts | quote }}
   CHANNEL_LAYER_CAPACITY: {{ .Values.config.wallet.channelLayerCapacity | quote }}
   CHANNEL_LAYER_EXPIRY: {{ .Values.config.wallet.channelLayerExpiry | quote }}
   
-  # =========================
-  # CORS Settings
-  # =========================
-  CORS_ALLOWED_ORIGINS: {{ .Values.config.wallet.corsAllowedOrigins | quote }}
-  CSRF_TRUSTED_ORIGINS: {{ .Values.config.wallet.csrfTrustedOrigins | quote }}
-  CORS_ALLOW_CREDENTIALS: {{ .Values.config.wallet.corsAllowCredentials | quote }}
+  # JWT
+  JWT_SECRET: {{ .Values.secrets.data.wallet.jwtSecret | default "my_jwt_secret_123!" | quote }}

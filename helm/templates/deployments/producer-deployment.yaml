@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-producer
+  labels:
+    app: wallet-service
+    component: producer
+    managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployments.producer.replicas }}
+  selector:
+    matchLabels:
+      app: wallet-service
+      component: producer
+  template:
+    metadata:
+      labels:
+        app: wallet-service
+        component: producer
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+      - name: wallet-producer
+        image: {{ .Values.backend.wallet.image.repository }}:{{ .Values.backend.wallet.image.tag }}
+        imagePullPolicy: {{ .Values.backend.wallet.image.pullPolicy }}
+        command: ["python", "manage.py", "run_kafka_publisher"]
+        envFrom:
+        - configMapRef:
+            name: {{ .Values.configMap.name }}
+        - secretRef:
+            name: {{ .Values.secrets.wallet }}
+        - secretRef:
+            name: {{ .Values.secrets.postgres }}
+        - secretRef:
+            name: {{ .Values.secrets.rabbitmq }}
+        - secretRef:
+            name: {{ .Values.secrets.kafka }}
+        - secretRef:
+            name: {{ .Values.secrets.redis }}
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SERVICE_COMPONENT
+          value: "kafka-producer"
+        resources:
+          requests:
+            memory: {{ .Values.deployments.producer.resources.requests.memory }}
+            cpu: {{ .Values.deployments.producer.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.deployments.producer.resources.limits.memory }}
+            cpu: {{ .Values.deployments.producer.resources.limits.cpu }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000

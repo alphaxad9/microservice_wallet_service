@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-api
+  labels:
+    app: wallet-service
+    component: api
+    managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.deployments.api.replicas }}
+  selector:
+    matchLabels:
+      app: wallet-service
+      component: api
+  template:
+    metadata:
+      labels:
+        app: wallet-service
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      containers:
+      - name: wallet-api
+        image: {{ .Values.backend.wallet.image.repository }}:{{ .Values.backend.wallet.image.tag }}
+        imagePullPolicy: {{ .Values.backend.wallet.image.pullPolicy }}
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 8001
+          name: metrics
+        envFrom:
+        - configMapRef:
+            name: {{ .Values.configMap.name }}
+        - secretRef:
+            name: {{ .Values.secrets.wallet }}
+        - secretRef:
+            name: {{ .Values.secrets.postgres }}
+        - secretRef:
+            name: {{ .Values.secrets.rabbitmq }}
+        - secretRef:
+            name: {{ .Values.secrets.kafka }}
+        - secretRef:
+            name: {{ .Values.secrets.redis }}
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: DJANGO_SETTINGS_MODULE
+          value: "wallet_service.settings"
+        resources:
+          requests:
+            memory: {{ .Values.deployments.api.resources.requests.memory }}
+            cpu: {{ .Values.deployments.api.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.deployments.api.resources.limits.memory }}
+            cpu: {{ .Values.deployments.api.resources.limits.cpu }}
+        livenessProbe:
+          httpGet:
+            path: /health/
+            port: http
+            httpHeaders:
+            - name: Host
+              value: wallet-service
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/
+            port: http
+            httpHeaders:
+            - name: Host
+              value: wallet-service
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health/
+            port: http
+            httpHeaders:
+            - name: Host
+              value: wallet-service
+          failureThreshold: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: static-files
+          mountPath: /app/static
+        - name: media-files
+          mountPath: /app/media
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: static-files
+        persistentVolumeClaim:
+          claimName: wallet-service-static-pvc
+      - name: media-files
+        persistentVolumeClaim:
+          claimName: wallet-service-media-pvc
+      - name: tmp
+        emptyDir: {}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
